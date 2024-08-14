@@ -30,11 +30,14 @@ def wait_for_completion(log_file, oids, timeout=600):
 
 if __name__ == "__main__":
     # ใช้ double backslashes หรือ raw strings ในเส้นทาง Windows
-    log_file = r'C:\Users\casev\Code\Project\Data\Script.txt'
+    log_file = r'../Data/Script.txt'
     # รายการ OIDs ที่คาดหวังว่าจะเสร็จสิ้น
     oids = [
+        # studentID
         '1.3.6.1.4.1.9.9.599.1.3.1.1.27',
+        # Profile
         '1.3.6.1.4.1.9.9.599.1.3.1.1.28',
+        # MAC Address
         '1.3.6.1.4.1.9.9.599.1.3.1.1.8'
     ]
 
