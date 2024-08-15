@@ -2,3 +2,4 @@ __pycache__
 Script.txt
 snmp_output.txt
 snmp
+.env
