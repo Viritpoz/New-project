@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from contextlib import asynccontextmanager
 from datetime import datetime
 from fastapi import FastAPI
 from dotenv import load_dotenv
@@ -8,27 +9,27 @@ import pytz
 from config.db import get_collection
 from controllers.snmpcontroller import getsnmpdatacontroller, startup_event
 
-
 # Define the time zone for Bangkok
 bangkok_tz = pytz.timezone('Asia/Bangkok')
-
 
 # Load environment variables from .env file
 pathenv = Path('./.env')
 load_dotenv(dotenv_path=pathenv)
 
-
 # Initialize the collection
 collection = get_collection('snmp_data')
 
-# Initialize FastAPI app
-app = FastAPI()
-
-# collect data from the device
-@app.on_event("startup")
-async def startup():
+# Initialize FastAPI app with lifespan
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup task
     await startup_event()
+    yield
+    # (Optional) Teardown task can be added here if needed
 
+app = FastAPI(lifespan=lifespan)
+
+# Collect data from the device
 @app.get('/latest_snmp_data')
 async def get_latest_snmp_data():
     latest_data = list(collection.find().sort([('time', -1)]).limit(100))
