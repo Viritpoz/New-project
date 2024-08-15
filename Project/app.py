@@ -1,28 +1,35 @@
 #!/usr/bin/env python3
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from pymongo import MongoClient
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI
 from dotenv import load_dotenv
-from pymongo.errors import ConnectionFailure
 from models.snmp_model import SNMPData
 import asyncio
 from puresnmp import Client, PyWrapper, V2C
+from pathlib import Path
+import os
+import pytz
+
+# Define the time zone for Bangkok
+bangkok_tz = pytz.timezone('Asia/Bangkok')
+
 
 # Load environment variables from .env file
-load_dotenv()
+pathenv = Path('./.env')
+load_dotenv(dotenv_path=pathenv)
 
 # SNMP and MongoDB configuration ================================================
-COMMUNITY = 'mfunet'
-HOST = '172.30.99.11'
+MONGO_URI = os.getenv('MONGO_URI') or 'mongodb://localhost:27018'
+COMMUNITY = os.getenv('COMMUNITY') or 'public'
+HOST = os.getenv('HOST') or 'http://localhost'
 OIDS = {
     'student': '1.3.6.1.4.1.9.9.599.1.3.1.1.27',
     'type': '1.3.6.1.4.1.9.9.599.1.3.1.1.28',
     'macAccespoint': '1.3.6.1.4.1.9.9.599.1.3.1.1.8'
 }
-MONGO_URI = 'mongodb://root:1234@localhost:27018'
-DB_NAME = 'snmp_data'
-COLLECTION_NAME = 'snmp_results'
+DB_NAME = os.getenv('DB_NAME') or 'snmp_db'
+COLLECTION_NAME = os.getenv('COLLECTION_NAME') or 'snmp_data'
 #===============================================================================
 
 #================================================================================================
@@ -86,15 +93,20 @@ async def continuous_snmp_collection():
                         clean_value = value.strip("b'")
                     snmp_data_dict[category][key] = clean_value
 
-            # Insert data into MongoDB
-            for key in snmp_data_dict['student']:
+            # Insert data into MongoDB ================================================
+            all_keys = set(snmp_data_dict['student'].keys()) | set(snmp_data_dict['type'].keys()) | set(snmp_data_dict['macAccespoint'].keys())
+            # Get the current time in Bangkok time zone
+            bangkok_time = datetime.now(bangkok_tz).isoformat()
+            for key in all_keys:
                 snmp_data_obj = SNMPData(
-                    time=datetime.now().isoformat(),
+                    time=bangkok_time,
                     student=snmp_data_dict['student'].get(key, "Unknown"),
                     type=snmp_data_dict['type'].get(key, "Unknown"),
                     macAccespoint=snmp_data_dict['macAccespoint'].get(key, "Unknown")
                 )
                 collection.insert_one(snmp_data_obj.dict())
+
+            print(f"Inserted {len(all_keys)} records into MongoDB")
 
             print("Data inserted into MongoDB")
 
