@@ -25,5 +25,5 @@ for OID in "${OIDS[@]}"; do
     fi
 done
 
-# เรียกใช้สคริปต์ Python เพื่ออัปเดตข้อมูลใน MongoDB
+# Run Python script to update MongoDB
 /usr/bin/python3 ../Runin/run_imports.py
