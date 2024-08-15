@@ -10,6 +10,9 @@ from puresnmp import Client, PyWrapper, V2C
 from pathlib import Path
 import os
 import pytz
+from config.db import get_collection
+from service.snmpservie import get_accesspoint 
+
 
 # Define the time zone for Bangkok
 bangkok_tz = pytz.timezone('Asia/Bangkok')
@@ -19,8 +22,7 @@ bangkok_tz = pytz.timezone('Asia/Bangkok')
 pathenv = Path('./.env')
 load_dotenv(dotenv_path=pathenv)
 
-# SNMP and MongoDB configuration ================================================
-MONGO_URI = os.getenv('MONGO_URI') or 'mongodb://localhost:27018'
+# SNMP configuration ================================================
 COMMUNITY = os.getenv('COMMUNITY') or 'public'
 HOST = os.getenv('HOST') or 'http://localhost'
 OIDS = {
@@ -28,8 +30,6 @@ OIDS = {
     'type': '1.3.6.1.4.1.9.9.599.1.3.1.1.28',
     'macAccespoint': '1.3.6.1.4.1.9.9.599.1.3.1.1.8'
 }
-DB_NAME = os.getenv('DB_NAME') or 'snmp_db'
-COLLECTION_NAME = os.getenv('COLLECTION_NAME') or 'snmp_data'
 #===============================================================================
 
 #================================================================================================
@@ -42,10 +42,8 @@ max_data = 100
 # Initialize FastAPI app
 app = FastAPI()
 
-# Initialize MongoDB client
-mongo_client = MongoClient(MONGO_URI)
-db = mongo_client[DB_NAME]
-collection = db[COLLECTION_NAME]
+# Initialize the collection
+collection = get_collection('snmp_data')
 
 async def snmp_walk(host, community, oid):
     client = PyWrapper(Client(host, V2C(community)))
@@ -97,17 +95,20 @@ async def continuous_snmp_collection():
             all_keys = set(snmp_data_dict['student'].keys()) | set(snmp_data_dict['type'].keys()) | set(snmp_data_dict['macAccespoint'].keys())
             # Get the current time in Bangkok time zone
             bangkok_time = datetime.now(bangkok_tz).isoformat()
+            # mac_address = snmp_data_dict['macAccespoint'].get(key, "Unknown")
+            # ap_name = get_accesspoint(mac_address)
             for key in all_keys:
                 snmp_data_obj = SNMPData(
                     time=bangkok_time,
                     student=snmp_data_dict['student'].get(key, "Unknown"),
                     type=snmp_data_dict['type'].get(key, "Unknown"),
-                    macAccespoint=snmp_data_dict['macAccespoint'].get(key, "Unknown")
+                    macAccespoint=snmp_data_dict['macAccespoint'].get(key, "Unknown"),
+                    # apName=ap_name.AP_Name if ap_name else "Unknown"
                 )
                 collection.insert_one(snmp_data_obj.dict())
 
             print(f"Inserted {len(all_keys)} records into MongoDB")
-
+                                                                                                                                          
             print("Data inserted into MongoDB")
 
             # Wait for a short period before the next collection
