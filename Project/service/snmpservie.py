@@ -27,7 +27,7 @@ OIDS = {
 }
 
 # adjust time to collect data from the device
-time=10
+time=60
 # adjust the maximum data to be collected from the device per time
 max_data = 100
 #=====================================================================
