@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 import logging
 from fastapi import FastAPI
-from dotenv import load_dotenv
+from dotenv import load_dotenv, dotenv_values
 from pathlib import Path
 import pytz
 from config.db import get_collection
@@ -16,6 +16,7 @@ bangkok_tz = pytz.timezone('Asia/Bangkok')
 # Load environment variables from .env file
 pathenv = Path('./.env')
 load_dotenv(dotenv_path=pathenv)
+config = dotenv_values()  
 
 # Initialize the collection
 collection = get_collection('snmp_data')
