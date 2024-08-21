@@ -102,12 +102,16 @@ async def continuous_snmp_collection():
             # Get the current time in Bangkok time zone
             bangkok_time = datetime.now(bangkok_tz).isoformat()
             for key in all_keys:
+                student_id = snmp_data_dict['student'].get(key, "Unknown")
+                # Skip this record if student_id is an empty string
+                if student_id == "":
+                    continue
                 mac_address = snmp_data_dict['macAccespoint'].get(key, "Unknown")
                 # print(f"MAC Address: {mac_address}")
                 ap_name = get_accesspoint(mac_address)
                 snmp_data_obj = SNMPData(
                     time=bangkok_time,
-                    student=snmp_data_dict['student'].get(key, "Unknown"),
+                    student=student_id,
                     type=snmp_data_dict['type'].get(key, "Unknown"),
                     macAccespoint=mac_address,
                     apName=ap_name.AP_Name if ap_name else "Unknown"
