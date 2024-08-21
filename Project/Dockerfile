@@ -12,9 +12,12 @@ COPY requirements.txt .
 # Install any dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+ENV PYTHONUNBUFFERED=1
+ENV UVICORN_LIFESPAN_ON=1
+
 # Copy the rest of the application code into the container
 COPY . .
 
 # Expose the port FastAPI is running on
 EXPOSE 8000
-CMD ["gunicorn", "app:app", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--timeout", "120"]
+CMD ["gunicorn", "app:app", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--timeout", "120", "--worker-class", "uvicorn.workers.UvicornWorker"]

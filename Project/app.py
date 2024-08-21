@@ -9,7 +9,7 @@ from pathlib import Path
 import pytz
 from config.db import get_collection
 from controllers.snmpcontroller import getsnmpdatacontroller, startup_event
-
+logging.basicConfig(level=logging.INFO)
 # Define the time zone for Bangkok
 bangkok_tz = pytz.timezone('Asia/Bangkok')
 
