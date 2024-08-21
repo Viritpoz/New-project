@@ -17,5 +17,5 @@ db = mongo_client[DB_NAME]
 
 # Export the MongoDB collection
 def get_collection(collection_name):
-    print(MONGO_URI)
+    # print(MONGO_URI)
     return db[collection_name]
