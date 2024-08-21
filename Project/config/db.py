@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 # Load environment variables from .env file
-pathenv = Path('/app/.env')
+pathenv = Path('../.env')
 load_dotenv(dotenv_path=pathenv)
 
 # SNMP and MongoDB configuration
