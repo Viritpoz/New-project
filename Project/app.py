@@ -2,6 +2,7 @@
 
 from contextlib import asynccontextmanager
 from datetime import datetime
+import logging
 from fastapi import FastAPI
 from dotenv import load_dotenv
 from pathlib import Path
@@ -22,9 +23,11 @@ collection = get_collection('snmp_data')
 # Initialize FastAPI app with lifespan
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logging.info("Lifespan startup event triggered")
     # Startup task
     await startup_event()
     yield
+    logging.info("Lifespan shutdown event triggered")
     # (Optional) Teardown task can be added here if needed
 
 app = FastAPI(lifespan=lifespan)
