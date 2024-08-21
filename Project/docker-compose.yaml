@@ -12,19 +12,19 @@ services:
     environment:
       - MONGO_INITDB_ROOT_USERNAME=root
       - MONGO_INITDB_ROOT_PASSWORD=1234
-  fastapi:
-    build: .
-    container_name: fastapi
-    restart: always
-    ports:
-      - "8000:8000"
-    depends_on:
-      - mongodb
-    volumes:
-      - .:/app  
-    environment:
-      - PYTHONUNBUFFERED=1
-      - UVICORN_LIFESPAN_ON=1
+  # fastapi:
+  #   build: .
+  #   container_name: fastapi
+  #   restart: always
+  #   ports:
+  #     - "8000:8000"
+  #   depends_on:
+  #     - mongodb
+  #   volumes:
+  #     - .:/app  
+  #   environment:
+  #     - PYTHONUNBUFFERED=1
+  #     - UVICORN_LIFESPAN_ON=1
 volumes:
   mongodb_data:
     driver: local
