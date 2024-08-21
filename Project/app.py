@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO)
 bangkok_tz = pytz.timezone('Asia/Bangkok')
 
 # Load environment variables from .env file
-pathenv = Path('/app/.env')
+pathenv = Path('./.env')
 load_dotenv(dotenv_path=pathenv)
 
 # Initialize the collection
