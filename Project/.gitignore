@@ -3,3 +3,4 @@ Script.txt
 snmp_output.txt
 snmp
 .env
+.venv
