@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 # Load environment variables from .env file
+## /app/.env for deployment ##
+## ../.env for development ##
 pathenv = Path('../.env')
 load_dotenv(dotenv_path=pathenv)
 
