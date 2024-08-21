@@ -12,8 +12,6 @@ COPY requirements.txt .
 # Install any dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-ENV PYTHONUNBUFFERED=1
-ENV UVICORN_LIFESPAN_ON=1
 
 # Copy the rest of the application code into the container
 COPY . .
