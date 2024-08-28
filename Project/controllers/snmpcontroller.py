@@ -8,4 +8,5 @@ async def startup_event():
 
 def getsnmpdatacontroller():
     allData = getsnmpdataservice()
+    # print(allData)
     return {"status": "success", "data": allData}

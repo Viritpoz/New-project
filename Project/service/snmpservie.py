@@ -1,3 +1,5 @@
+import json
+import logging
 from config.db import get_collection
 from models.snmp_model import Accespoint
 import os
@@ -8,10 +10,11 @@ import asyncio
 from models.snmp_model import SNMPData
 import codecs
 from config.db import get_collection
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
-
-
+from bson import json_util
+from datetime import datetime, time
+from pymongo import DESCENDING
 
 # Load environment variables from .env file
 pathenv = Path('./.env')
@@ -27,10 +30,12 @@ OIDS = {
 }
 
 # adjust time to collect data from the device
-time=60
+time=10
 # adjust the maximum data to be collected from the device per time
-max_data = 100
+max_data = 1000
 #=====================================================================
+
+
 
 bangkok_tz = pytz.timezone('Asia/Bangkok')
 
@@ -61,7 +66,6 @@ def format_mac_address(raw_mac):
     
     # Decode the ASCII representation of hex values
     decoded_mac = codecs.escape_decode(clean_mac)[0].hex()
-    
     
     # Format the MAC address in the desired pattern
     return f"{decoded_mac[:4]}.{decoded_mac[4:8]}.{decoded_mac[8:12]}"
@@ -129,4 +133,28 @@ async def continuous_snmp_collection():
             await asyncio.sleep(time)  # Wait before retrying
 
 def getsnmpdataservice():
-    return list(collection.find())
+    cursor = collection.find()
+    # Convert MongoDB cursor to a list of dictionaries
+    data = [doc for doc in cursor]
+    # Use json_util to handle MongoDB-specific types
+    return json.loads(json_util.dumps(data))
+
+def get_today_data():
+    now = datetime.now(bangkok_tz)
+    start_of_day = datetime(now.year, now.month, now.day, tzinfo=bangkok_tz)
+
+    pipeline = [
+        {"$match": {"time": {"$gte": start_of_day.isoformat()}}},
+        {"$sort": {"time": DESCENDING}},
+        {
+            "$group": {
+                "_id": "$student",
+                "latest_entry": {"$first": "$$ROOT"}
+            }
+        },
+        {"$replaceRoot": {"newRoot": "$latest_entry"}},
+        {"$sort": {"time": DESCENDING}}
+    ]
+
+    today_data = list(collection.aggregate(pipeline))
+    return today_data
