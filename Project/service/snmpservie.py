@@ -32,7 +32,7 @@ OIDS = {
 # adjust time to collect data from the device
 time=10
 # adjust the maximum data to be collected from the device per time
-max_data = 1000
+max_data = 1500
 #=====================================================================
 
 
@@ -103,6 +103,7 @@ async def continuous_snmp_collection():
 
             # Insert data into MongoDB ================================================
             all_keys = set(snmp_data_dict['student'].keys()) | set(snmp_data_dict['type'].keys()) | set(snmp_data_dict['macAccespoint'].keys())
+            print(f"Number of unique keys processed: {len(all_keys)}")
             # Get the current time in Bangkok time zone
             bangkok_time = datetime.now(bangkok_tz).isoformat()
             for key in all_keys:
