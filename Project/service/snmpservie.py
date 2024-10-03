@@ -159,3 +159,81 @@ def get_today_data():
 
     today_data = list(collection.aggregate(pipeline))
     return today_data
+
+
+
+def getDatafromBuilding(buildingname):
+    now = datetime.now(bangkok_tz)
+    start_of_day = datetime(now.year, now.month, now.day, tzinfo=bangkok_tz)
+
+    pipeline = [
+        {"$match": {"time": {"$gte": start_of_day.isoformat()}, "apName": {"$regex": f"^{buildingname}-"}}},
+        {"$sort": {"time": DESCENDING}},
+        {
+            "$group": {
+                "_id": "$student",
+                "latest_entry": {"$first": "$$ROOT"}
+            }
+        },
+        {"$replaceRoot": {"newRoot": "$latest_entry"}},
+        {"$sort": {"time": DESCENDING}}
+    ]
+    building_data = list(collection.aggregate(pipeline))
+    
+    return building_data
+
+def count_student_frombuilding(buildingname,timerange=10):
+    now = datetime.now(bangkok_tz)
+    time = now - timedelta(minutes=timerange)
+
+    pipeline = [
+        {"$match": {"time": {"$gte": time.isoformat()}, "apName": {"$regex": f"^{buildingname}-"}}},
+        {"$group": {"_id": None, "unique_students": {"$addToSet": "$student"}}},
+        {"$project": {"_id": 0, "total": {"$size": "$unique_students"}}}
+    ]
+    
+    result = list(collection.aggregate(pipeline))
+    total = result[0]["total"] if result else 0
+    
+    return total
+
+def count_student_frombuilding_floor(buildingname, timerange=10):
+    now = datetime.now(bangkok_tz)
+    
+    time = now - timedelta(minutes=timerange)
+
+    # Step 1: Find all distinct floors for the building
+    distinct_floors_pipeline = [
+        {"$match": { "apName": {"$regex": f"^{buildingname}-"}}},
+        {"$group": {"_id": {"$substr": ["$apName", 0, {"$indexOfBytes": ["$apName", "-AP"]}]}}}
+    ]
+    distinct_floors_result = list(collection.aggregate(distinct_floors_pipeline))
+    all_floors = [floor["_id"] for floor in distinct_floors_result]
+
+    # Debugging: Print the distinct floors result
+    # print("Distinct floors result:", distinct_floors_result)
+    # print("All floors:", all_floors)
+
+    # Step 2: Count unique students for each floor
+    pipeline_each_floor = [
+        {"$match": {"time": {"$gte": time.isoformat()}, "apName": {"$regex": f"^{buildingname}-"}}},
+        {"$group": {"_id": {"$substr": ["$apName", 0, {"$indexOfBytes": ["$apName", "-AP"]}]}, "unique_students": {"$addToSet": "$student"}}},
+        {"$project": {"_id": 1, "total": {"$size": "$unique_students"}}}
+    ]
+    
+    total_each_floor = list(collection.aggregate(pipeline_each_floor))
+    
+    # Debugging: Print the total each floor result
+    # print("Total each floor result:", total_each_floor)
+
+    # Step 3: Create a dictionary to store the results with default count 0
+    floor_counts = {floor: 0 for floor in all_floors}
+    
+    # Step 4: Update the dictionary with actual counts from the query
+    for floor_data in total_each_floor:
+        floor_counts[floor_data["_id"]] = floor_data["total"]
+    
+    # Step 5: Convert the dictionary to the desired list format
+    result = [{"_id": floor, "total": count} for floor, count in floor_counts.items()]
+    
+    return result

@@ -1,78 +1,85 @@
 import Axiosintance, { WS_BASE_URL } from '../../configs/axios.config';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { SNMP } from '../../interfaces/snmp.interface';
 
 const GetSNMP = () => {
-    const [snmpData, setSnmpData] = useState([]);
-    useEffect(() => {
-        async function fetchData() {
-            const response = await Axiosintance.get('/snmp');
-            setSnmpData(response.data);
-        }
-        fetchData();
-    }, []);
-    return snmpData;
-
+  const [snmpData, setSnmpData] = useState<SNMP[]>([]);
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const response = await Axiosintance.get('/snmp');
+        setSnmpData(response.data);
+      } catch (error) {
+        console.error("Error fetching SNMP data:", error);
+      }
+    }
+    fetchData();
+  }, []);
+  return snmpData;
 }
 
 export const GetSNMPWS = () => {
-    const [socket, setSocket] = useState<WebSocket | null>(null);
-    const [snmpData, setSnmpData] = useState<SNMP | null>(null);
-    const [isConnected, setIsConnected] = useState(false);
-    const reconnectTimeoutRef = useRef<number>();
+  const [socket, setSocket] = useState<WebSocket | null>(null);
+  const [snmpData, setSnmpData] = useState<SNMP | null>(null);
+  const [error, setError] = useState<string | null>(null);
   
-    const connect = useCallback(() => {
-      const ws = new WebSocket(`${WS_BASE_URL}/today`);
-  
-      ws.onopen = () => {
-        console.log("Connected to WebSocket");
-        setSocket(ws);
-        setIsConnected(true);
-      };
-  
-      ws.onmessage = (message: MessageEvent) => {
-        try {
-          const data = JSON.parse(message.data);
-          setSnmpData(data);
-        } catch (error) {
-          console.error("Error parsing WebSocket message:", error);
-        }
-      };
-  
-      ws.onclose = (event) => {
-        console.log("WebSocket disconnected:", event.reason);
-        setIsConnected(false);
-        reconnectTimeoutRef.current = window.setTimeout(connect, 5000);
-      };
-  
-      ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
-      };
-  
-      return ws;
-    }, []);
-  
-    useEffect(() => {
-      const ws = connect();
-  
-      return () => {
-        clearTimeout(reconnectTimeoutRef.current);
-        if (ws) {
-          ws.close();
-        }
-      };
-    }, [connect]);
-  
-    const send = useCallback((message: string) => {
-      if (socket && isConnected) {
-        socket.send(message);
-      } else {
-        console.warn("WebSocket is not connected. Message not sent.");
-      }
-    }, [socket, isConnected]);
-  
-    return { snmpData, send, isConnected };
-  };
+  // Ensure WS_BASE_URL is correct and doesn't include duplicate '/ws'
+  const url = `${WS_BASE_URL}/today`;
+ 
+  useEffect(() => {
+    let ws: WebSocket;
 
+    const connectWebSocket = () => {
+      ws = new WebSocket(url);
+
+      ws.onopen = () => {
+        console.log('WebSocket connected');
+        setSocket(ws);
+        setError(null);
+      };
+
+      ws.onmessage = (event: MessageEvent) => {
+        try {
+          const newMessage: SNMP = JSON.parse(event.data);
+          setSnmpData(newMessage);
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
+        }
+      };
+
+      ws.onerror = (error: Event) => {
+        console.error('WebSocket error:', error);
+        setError('WebSocket connection error');
+      };
+
+      ws.onclose = (event: CloseEvent) => {
+        console.log('WebSocket disconnected', event.reason);
+        setError('WebSocket disconnected');
+        
+        // Attempt to reconnect after 5 seconds
+        setTimeout(connectWebSocket, 5000);
+      };
+    };
+
+    connectWebSocket();
+
+    return () => {
+      if (ws) {
+        ws.close();
+      }
+    };
+  }, [url]);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sendMessage = useCallback((message: any) => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(message));
+    } else {
+      console.error('WebSocket is not connected');
+    }
+  }, [socket]);
+
+  return { snmpData, sendMessage, error };
+};
 
 export default GetSNMP;
