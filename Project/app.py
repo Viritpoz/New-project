@@ -72,17 +72,20 @@ async def get_today_snmp_data():
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     logger.info("New WebSocket connection established")
+    
     try:
-        while True:
-            if websocket.client_state == WebSocketState.DISCONNECTED:
-                logger.info("Client disconnected")
-                break
-
+        while websocket.client_state == WebSocketState.CONNECTED:
             today_data = get_today_data()
             json_data = json.loads(json_util.dumps(today_data))
-            await websocket.send_json(json_data)
-            logger.debug(f"Sent data: {json_data}")
-            
+
+            # Check if websocket is still open before sending
+            if websocket.client_state == WebSocketState.CONNECTED:
+                await websocket.send_json(json_data)
+                logger.debug(f"Sent data: {json_data}")
+            else:
+                logger.info("WebSocket connection is closed, stopping sending data.")
+                break
+
             await asyncio.sleep(5)  # Update every 5 seconds
 
     except WebSocketDisconnect:
