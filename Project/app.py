@@ -128,34 +128,40 @@ async def websocket_endpoint(websocket: WebSocket):
         logger.info("WebSocket connection closed")
 
 @app.websocket("/ws/today/total/{building}")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint_building(websocket: WebSocket, building: str):
     await websocket.accept()
-    logger.info("New WebSocket connection established")
+    logger.info(f"New WebSocket connection established for building: {building}")
+
     try:
-        while True:
-            if websocket.client_state == WebSocketState.DISCONNECTED:
-                logger.info("Client disconnected")
-                break
-             # Receive a message as bytes
-            total_today_data = count_student_frombuilding(buildingname=websocket.path_params['building'])
-            floor_todat_data = count_student_frombuilding_floor(buildingname=websocket.path_params['building'])
-            json_data = json.loads(json_util.dumps({"total": total_today_data, "floor": floor_todat_data}))
+        while websocket.client_state == WebSocketState.CONNECTED:
+            # Fetch the total and floor data for the current building
+            total_today_data = count_student_frombuilding(buildingname=building)
+            floor_today_data = count_student_frombuilding_floor(buildingname=building)
+
+            # Convert the data to JSON format
+            json_data = json.loads(json_util.dumps({
+                "total": total_today_data,
+                "floor": floor_today_data
+            }))
+
+            # Send the data to the WebSocket client
             await websocket.send_json(json_data)
-            logger.debug(f"Sent data: {json_data}")
-            
-            await asyncio.sleep(5)  # Update every 5 seconds
+            logger.debug(f"Sent data for building {building}: {json_data}")
+
+            # Sleep for 5 seconds before sending the next update
+            await asyncio.sleep(5)
 
     except WebSocketDisconnect:
-        logger.info("WebSocket disconnected")
+        logger.info(f"WebSocket disconnected for building: {building}")
     except asyncio.CancelledError:
-        logger.info("WebSocket connection cancelled")
+        logger.info(f"WebSocket connection cancelled for building: {building}")
     except Exception as e:
-        logger.error(f"WebSocket error: {str(e)}", exc_info=True)
+        logger.error(f"WebSocket error for building {building}: {str(e)}", exc_info=True)
     finally:
         if websocket.client_state != WebSocketState.DISCONNECTED:
             await websocket.close()
-        logger.info("WebSocket connection closed")
-
+        logger.info(f"WebSocket connection closed for building: {building}")
+        
 @app.get('/latest_snmp_data')
 async def get_latest_snmp_data():
     latest_data = list(collection.find().sort([('time', -1)]).limit(100))
