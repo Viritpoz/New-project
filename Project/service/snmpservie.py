@@ -238,6 +238,6 @@ def count_student_frombuilding_floor(buildingname, timerange=10):
     result = [{"_id": floor, "total": count} for floor, count in floor_counts.items()]
    
     # Step 6: Sort the floors based on their names
-    result.sort(key=lambda x: x["_id"])
+    result.sort(key=lambda x: x["_id"], reverse=True)
     
     return result
