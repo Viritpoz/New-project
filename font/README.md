@@ -48,3 +48,6 @@ export default tseslint.config({
   },
 })
 ```
+
+
+## env need VITE_API= ip server

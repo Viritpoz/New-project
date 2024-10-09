@@ -9,6 +9,8 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
+    networks:
+      - snmppjnet
     environment:
       - MONGO_INITDB_ROOT_USERNAME=root
       - MONGO_INITDB_ROOT_PASSWORD=1234
@@ -21,10 +23,34 @@ services:
     depends_on:
       - mongodb
     volumes:
-      - .:/app  
+      - .:/app
+    networks:
+      - snmppjnet  
     environment:
       - PYTHONUNBUFFERED=1
       - UVICORN_LIFESPAN_ON=1
+  fontend:
+    build: ../font/
+    ports:
+      - 3000:80
+    depends_on:
+      - fastapi
+    networks:
+      - snmppjnet
+    restart: unless-stopped
+  nginx:
+    build: ../nginx/
+    image: nginx:alpine
+    ports:
+      - 80:80
+    depends_on:
+      - fontend
+    networks:
+      - snmppjnet
+    restart: unless-stopped
+networks:
+  snmppjnet:
+    driver: bridge
 volumes:
   mongodb_data:
     driver: local
