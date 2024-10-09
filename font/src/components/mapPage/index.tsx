@@ -7,6 +7,7 @@ import { Building, buildingdata } from '../../interfaces/building.interface';
 import { getMarkerBuilding } from '../../containers/getMarkerBuilding';
 import { GetSNMPWSBuilding } from '../../containers/getSNMP';
 import ModalBuildingtotal from '../modalBuildingtotal/index';
+import customMarkerIcon from '../../assets/office-building.png'; 
 // import {GetSNMPWSBuilding,testGetSNMPWSBuilding} from '../../containers/getSNMP';
 // import { GeoJSON } from 'react-leaflet'; 
 
@@ -33,7 +34,15 @@ const Map: React.FC<MapProps> = ({ center, zoom, snmpData, setLoading }) => {
   const propsRef = useRef({ center, zoom, snmpData });
   // const { snmpData: snmpDataBuilding,disconnectWebSocket } = GetSNMPWSBuilding(selectedBuilding || '');
   // console.log("SNMP Data Building: ", snmpDataBuilding);
-
+  const customIcon = L.icon({
+    iconUrl: customMarkerIcon, // The custom marker image
+    iconSize: [20, 36],        // Size of the icon
+    iconAnchor: [12, 41],      // Point of the icon which will correspond to marker's location
+    popupAnchor: [1, -34],     // Point from which the popup should open relative to the iconAnchor
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.1/images/marker-shadow.png',
+    shadowSize: [41, 41],      // Size of the shadow
+  });
+  
   // Update ref when props change
   useEffect(() => {
     propsRef.current = { center, zoom, snmpData };
@@ -71,7 +80,7 @@ const Map: React.FC<MapProps> = ({ center, zoom, snmpData, setLoading }) => {
 
     Object.entries(buildings).forEach(([key, building]) => {
       if (!markersRef.current[key]) {
-        const marker = L.marker([building.lat, building.lon])
+        const marker = L.marker([building.lat, building.lon], { icon: customIcon })
           .addTo(mapRef.current!)
           .on('click', () => handleMarkerClick(building)); 
           
