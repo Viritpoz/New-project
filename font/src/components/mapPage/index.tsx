@@ -1,10 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
+
 import 'leaflet/dist/leaflet.css';
 import { SNMP } from '../../interfaces/snmp.interface';
 import { Building, buildingdata } from '../../interfaces/building.interface';
 import { getMarkerBuilding } from '../../containers/getMarkerBuilding';
-import { GeoJSON } from 'react-leaflet'; 
+import { GetSNMPWSBuilding } from '../../containers/getSNMP';
+import ModalBuildingtotal from '../modalBuildingtotal/index';
+// import {GetSNMPWSBuilding,testGetSNMPWSBuilding} from '../../containers/getSNMP';
+// import { GeoJSON } from 'react-leaflet'; 
 
 interface MapProps {
   center: [number, number];
@@ -13,17 +17,22 @@ interface MapProps {
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
+
+
 const Map: React.FC<MapProps> = ({ center, zoom, snmpData, setLoading }) => {
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<{ [key: string]: L.Marker }>({});
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const highlightLayerRef = useRef<L.Rectangle<L.LatLngExpression> | null>(null); // Ref to store the highlight rectangle
   const [buildings, setBuildings] = useState<Building | null>(null);
-  const [buildingsArea, setBuildingsArea] = useState<Building | null>(null);
+  const { connectWebSocket, closeSocket,snmptotalData } = GetSNMPWSBuilding();
+  const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null);
+  const [modalBuildingtotalVisible, setModalBuildingtotalVisible] = useState<boolean>(false);
+  // const [buildingsArea, setBuildingsArea] = useState<Building | null>(null);
   // Ref to store latest props
   const propsRef = useRef({ center, zoom, snmpData });
-
-  
+  // const { snmpData: snmpDataBuilding,disconnectWebSocket } = GetSNMPWSBuilding(selectedBuilding || '');
+  // console.log("SNMP Data Building: ", snmpDataBuilding);
 
   // Update ref when props change
   useEffect(() => {
@@ -41,8 +50,6 @@ const Map: React.FC<MapProps> = ({ center, zoom, snmpData, setLoading }) => {
     }).addTo(mapRef.current);
     const building = getMarkerBuilding();
     setBuildings(building);
-
-
 
     // Cleanup function
     return () => {
@@ -66,7 +73,6 @@ const Map: React.FC<MapProps> = ({ center, zoom, snmpData, setLoading }) => {
       if (!markersRef.current[key]) {
         const marker = L.marker([building.lat, building.lon])
           .addTo(mapRef.current!)
-          .bindPopup(building.name)
           .on('click', () => handleMarkerClick(building)); 
           
         markersRef.current[key] = marker;
@@ -98,7 +104,7 @@ const Map: React.FC<MapProps> = ({ center, zoom, snmpData, setLoading }) => {
     // Update marker based on SNMP data
     if (propsRef.current.snmpData) {
       setLoading(false);
-      console.log("Updating map with SNMP data:", propsRef.current.snmpData);
+      // console.log("Updating map with SNMP data:", propsRef.current.snmpData);
 
       // Add new marker if SNMP data includes coordinates
       // Adjust this logic based on your SNMP data structure
@@ -110,24 +116,36 @@ const Map: React.FC<MapProps> = ({ center, zoom, snmpData, setLoading }) => {
     }
   }, [center, zoom, snmpData, setLoading]); // This effect runs when any of these props change
 
+
+
   // Handle marker click to fit to building
-const handleMarkerClick = (building: buildingdata) => {
+const handleMarkerClick = useCallback(async (building: buildingdata) => {
   if (highlightLayerRef.current) {
     highlightLayerRef.current.remove();
   }
-  const buildname = building.name.split('-')[0];
- 
-  const node =  buildingArea.elements.find((element) => {
-    // console.log(element.tags.name);
-    // console.log("Building name: ", buildname.split(' ')[1])    
-    if (element.tags.name === buildname.split(' ')[1]) {
+  const buildingId = building.name.split(' ')[1].trim();
+  try {
+    await connectWebSocket(buildingId);
+    setSelectedBuilding(buildingId);
+    console.log(`Successfully connected to WebSocket for building: ${buildingId}`);
+    setModalBuildingtotalVisible(true);
+    // Update your component state or perform any other actions here
+  } catch (error) {
+    console.error(`Failed to connect to WebSocket for building: ${buildingId}`, error);
+    // Handle the error (e.g., show an error message to the user)
+  }
+
+  // const node =  buildingArea.elements.find((element) => {
+  //   // console.log(element.tags.name);
+  //   // console.log("Building name: ", buildname.split(' ')[1])    
+  //   if (element.tags.name === buildname.split(' ')[1]) {
       
-      return element.nodes;
-    }})
-  if (!node || node === undefined ) {
-    console.log("Node not found");
-    return;
-  }  
+  //     return element.nodes;
+  //   }})
+  // if (!node || node === undefined ) {
+  //   console.log("Node not found");
+  //   return;
+  // }  
 
   // Create a small bounding box around the building's location
   const lat = parseFloat(building.lat.toString());
@@ -143,15 +161,26 @@ const handleMarkerClick = (building: buildingdata) => {
   mapRef.current!.fitBounds(bounds);
 
   // Optionally add a rectangle to highlight the building's area
-  highlightLayerRef.current = L.rectangle(bounds, {
-    color: 'blue', // Highlight color
-    weight: 2,
-  }).addTo(mapRef.current!);
-};
+  // highlightLayerRef.current = L.rectangle(bounds, {
+  //   color: 'blue', // Highlight color
+  //   weight: 2,
+  // }).addTo(mapRef.current!);
+},[connectWebSocket]);
 
+useEffect(() => {
+  console.log("SNMP Total Data: ", snmptotalData);
+}, [snmptotalData]);
+
+useEffect(() => {
+  return () => {
+    closeSocket(); // Ensure the socket is closed when the component unmounts
+  };
+}, [closeSocket]);
   return (
     <div className='h-full p-4'>
-      <div ref={mapContainerRef} className='w-full h-full rounded-xl overflow-hidden border-4 border-white' />
+      <ModalBuildingtotal closeWebSocket={closeSocket} selectedBuilding={selectedBuilding} building={snmptotalData} setModalBuildingtotalVisible={setModalBuildingtotalVisible} modalBuildingtotalVisible={modalBuildingtotalVisible}/>
+      <div ref={mapContainerRef} className='w-full h-full rounded-xl overflow-hidden border-4 border-white' >
+      </div>
     </div>
   );
 };

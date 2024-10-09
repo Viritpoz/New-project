@@ -1,8 +1,14 @@
 import React from 'react';
 import { useNavigate } from "react-router-dom";
 import indexRoutes from '../index';
-const Navbar: React.FC = () => {
- const indexRoute = indexRoutes();
+import { SNMP } from '../../interfaces/snmp.interface';
+interface NavbarProps {
+  snmpData: SNMP | null;
+  setLoading: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+const Navbar: React.FC<NavbarProps> = ({ snmpData, setLoading }) => {
+ const indexRoute = indexRoutes(snmpData,setLoading);
  const navigate = useNavigate();
  
   return (

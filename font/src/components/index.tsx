@@ -8,7 +8,7 @@ import { SNMP } from "../interfaces/snmp.interface";
 
 const indexRoutes = (snmpData:SNMP | null,setLoading: React.Dispatch<React.SetStateAction<boolean>>
 ):RouteObject[] =>[
-    {path: "home", element: <h1>Home</h1>, },
     {path:"map", element: <Map center={[20.046141, 99.894306]} zoom={15} snmpData={snmpData} setLoading={setLoading}  />, },
+    {path: "setting", element: <h1>Setting</h1>, },
 ]
 export default indexRoutes;

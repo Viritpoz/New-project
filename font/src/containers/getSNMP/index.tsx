@@ -1,6 +1,6 @@
 import Axiosintance, { WS_BASE_URL } from '../../configs/axios.config';
-import { useCallback, useEffect, useState } from 'react';
-import { SNMP } from '../../interfaces/snmp.interface';
+import  { useCallback, useEffect, useRef, useState } from 'react';
+import { SNMP, SNMPtotalbuilding } from '../../interfaces/snmp.interface';
 
 const GetSNMP = () => {
   const [snmpData, setSnmpData] = useState<SNMP[]>([]);
@@ -82,4 +82,127 @@ export const GetSNMPWS = () => {
   return { snmpData, sendMessage, error };
 };
 
+// export const testGetSNMPWSBuilding = (building: string): Promise<void> =>{
+//   const useWebSocket = (baseUrl: string) => {
+//     const socketRef = useRef<WebSocket | null>(null);
+//     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+//     const closeSocket = useCallback(() => {
+//       if (socketRef.current) {
+//         console.log("Closing WebSocket connection");
+//         socketRef.current.close();
+//         socketRef.current = null;
+//       }
+//       if (reconnectTimeoutRef.current) {
+//         clearTimeout(reconnectTimeoutRef.current);
+//         reconnectTimeoutRef.current = null;
+//       }
+//     }, []);
+  
+//     const connectWebSocket = useCallback((building: string) => {
+//       closeSocket(); // Always close the existing connection first
+  
+//       return new Promise<void>((resolve, reject) => {
+//         const url = `${baseUrl}/today/total/${building}`;
+//         console.log(`Connecting to WebSocket: ${url}`);
+        
+//         const socket = new WebSocket(url);
+//         socketRef.current = socket;
+  
+//         socket.onopen = () => {
+//           console.log(`WebSocket connected for building: ${building}`);
+//           resolve();
+//         };
+  
+//         socket.onmessage = (event) => {
+//           const data = JSON.parse(event.data);
+//           console.log("Received data: ", data);
+//           // Handle the received data here
+//         };
+  
+//         socket.onclose = (event) => {
+//           console.log(`WebSocket disconnected for building: ${building}`, event.reason);
+//           socketRef.current = null;
+//           // Optionally implement reconnection logic here
+//         };
+  
+//         socket.onerror = (error) => {
+//           console.error("WebSocket error: ", error);
+//           reject(error);
+//         };
+//       });
+//     }, [closeSocket]);
+  
+//     useEffect(() => {
+//       return () => {
+//         closeSocket(); // Ensure socket is closed when component unmounts
+//       };
+//     }, [closeSocket]);
+  
+//     return { connectWebSocket, closeSocket };
+//   };
+  
+// };
+
+
+export const GetSNMPWSBuilding = () => {
+  const socketRef = useRef<WebSocket | null>(null);
+  const [snmptotalData, setSnmptotalData] = useState<SNMPtotalbuilding | null>(null);
+  const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null);
+
+  const closeSocket = useCallback(() => {
+    if (socketRef.current) {
+      console.log("Closing WebSocket connection");
+      socketRef.current.close();
+      socketRef.current = null;
+    }
+  }, []);
+
+  const connectWebSocket = useCallback((building: string) => {
+    closeSocket(); // Always close the existing connection first
+
+    return new Promise<void>((resolve, reject) => {
+      const url = `${WS_BASE_URL}/today/total/${building}`;
+      console.log(`Connecting to WebSocket: ${url}`);
+      
+      const socket = new WebSocket(url);
+      socketRef.current = socket;
+
+      socket.onopen = () => {
+        console.log(`WebSocket connected for building: ${building}`);
+        setSelectedBuilding(building);
+        resolve();
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const newData: SNMPtotalbuilding = JSON.parse(event.data);
+          setSnmptotalData(newData);
+          // console.log("Received data: ", newData);
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
+        }
+      };
+
+      socket.onclose = (event) => {
+        console.log(`WebSocket disconnected for building: ${building}`, event.reason);
+        socketRef.current = null;
+        // Optionally implement reconnection logic here
+      };
+
+      socket.onerror = (error) => {
+        console.error("WebSocket error: ", error);
+        reject(error);
+      };
+    });
+  }, [closeSocket]);
+
+  useEffect(() => {
+    return () => {
+      closeSocket(); // Ensure socket is closed when component unmounts
+    };
+  }, [closeSocket]);
+
+  return { connectWebSocket, closeSocket, snmptotalData, selectedBuilding };
+};
 export default GetSNMP;

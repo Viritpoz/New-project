@@ -5,3 +5,14 @@ export interface SNMP {
     macAccesspoint: string;
     apName: string;
 }
+
+
+export interface SNMPtotalbuilding{
+    total: number;
+    floor: SNMPtotalfloor[];
+}
+
+export interface SNMPtotalfloor{
+    _id:string;
+    total: number;
+}
