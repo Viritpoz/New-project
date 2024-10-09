@@ -233,7 +233,11 @@ def count_student_frombuilding_floor(buildingname, timerange=10):
     for floor_data in total_each_floor:
         floor_counts[floor_data["_id"]] = floor_data["total"]
     
+    
     # Step 5: Convert the dictionary to the desired list format
     result = [{"_id": floor, "total": count} for floor, count in floor_counts.items()]
+   
+    # Step 6: Sort the floors based on their names
+    result.sort(key=lambda x: x["_id"])
     
     return result
