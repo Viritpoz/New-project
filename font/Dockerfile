@@ -1,4 +1,4 @@
-FROM node:20.0.0 as build
+FROM node:21.1.0 as build
 
 WORKDIR /app/font
 COPY package.json .
